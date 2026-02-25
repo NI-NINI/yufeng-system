@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宇豐估價 — 案件管理系統 v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f0f2f5;--sidebar:#1a2332;--sidebar-hover:#263348;--sidebar-active:#0d4f8b;--primary:#1a6fb5;--primary-dark:#145a94;--accent:#e8a838;--white:#fff;--card:#fff;--border:#dde1e6;--text:#1c2024;--text-light:#5a6270;--success:#2d8a4e;--warning:#c4841d;--danger:#c4314b;--info:#1a6fb5}
+body{font-family:'Noto Sans TC',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+a{color:var(--primary);text-decoration:none}
+.app{display:flex;min-height:100vh;width:100%}
+.sidebar{width:230px;min-width:230px;background:var(--sidebar);color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar-logo{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.sidebar-logo h1{font-size:22px;font-weight:800;letter-spacing:2px}
+.sidebar-logo p{font-size:11px;color:#6b7b8a;margin-top:3px;letter-spacing:1px}
+.sidebar-nav{flex:1;padding-top:10px}
+.sidebar-section{padding:14px 18px 6px;font-size:10px;color:#5a6a7a;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 18px;cursor:pointer;color:#b0bec5;border-radius:6px;margin:2px 8px;transition:all .15s;font-size:14px}
+.nav-item:hover{background:var(--sidebar-hover)}.nav-item.active{background:var(--sidebar-active);color:#fff;font-weight:600}
+.nav-sub{padding:7px 18px 7px 48px;cursor:pointer;color:#7e8e9a;font-size:13px;border-radius:4px;margin:1px 8px;transition:all .15s}
+.nav-sub:hover{background:rgba(255,255,255,0.05)}.nav-sub.active{background:rgba(26,111,181,0.3);color:#fff;font-weight:600}
+.sidebar-footer{padding:12px 18px;border-top:1px solid rgba(255,255,255,0.08);font-size:11px;color:#5a6a7a}
+.main{flex:1;padding:24px 32px;overflow:auto;max-width:calc(100vw - 230px)}
+
+.badge{display:inline-block;padding:2px 10px;border-radius:4px;font-size:12px;font-weight:600;white-space:nowrap}
+.b-green{background:#e6f4ea;color:#1a7431;border:1px solid #b7dfc3}
+.b-yellow{background:#fef7e0;color:#8a6d1b;border:1px solid #f0d68a}
+.b-red{background:#fce8ec;color:#a62b40;border:1px solid #f0a0ae}
+.b-blue{background:#e3f0fa;color:#1a5f96;border:1px solid #a8cfe8}
+.b-gray{background:#eef0f2;color:#5a6270;border:1px solid #cdd1d6}
+.b-purple{background:#f0e8f5;color:#6b3fa0;border:1px solid #c8a8e0}
+
+.card{background:var(--card);border-radius:10px;border:1px solid var(--border)}
+.card-hd{padding:14px 20px;border-bottom:1px solid var(--border);font-weight:700;font-size:15px;display:flex;justify-content:space-between;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-size:14px;font-weight:600;font-family:inherit;transition:all .15s}
+.btn-p{background:var(--primary);color:#fff}.btn-p:hover{background:var(--primary-dark)}
+.btn-o{background:#fff;border:1px solid var(--border);color:var(--text-light)}.btn-o:hover{background:#f8f9fa}
+.btn-s{padding:5px 12px;font-size:13px}
+.btn-d{background:var(--danger);color:#fff}
+.btn-g{background:var(--success);color:#fff}
+
+.inp,.sel,.ta{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;background:#fff}
+.inp:focus,.sel:focus,.ta:focus{border-color:var(--primary)}
+.ta{min-height:60px;resize:vertical}
+.search-w{position:relative}.search-w svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-light)}.search-w .inp{padding-left:38px}
+
+.field{margin-bottom:14px}.field label{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px}.field .req{color:var(--danger);margin-left:2px}
+
+table{width:100%;border-collapse:collapse}
+th{padding:12px 14px;text-align:left;font-size:12px;font-weight:700;color:var(--text-light);border-bottom:2px solid var(--border);background:#f8f9fa}
+td{padding:12px 14px;border-bottom:1px solid var(--border);font-size:14px}
+tr.ck{cursor:pointer;transition:background .15s}tr.ck:hover{background:#f8f9fb}
+
+.stat{background:var(--card);border-radius:10px;padding:20px 22px;border:1px solid var(--border);flex:1 1 200px;min-width:180px}
+.stat-v{font-size:26px;font-weight:800;margin-top:10px}.stat-s{font-size:12px;color:var(--text-light);margin-top:4px}
+.prog{flex:1;height:10px;background:#eef0f2;border-radius:5px;overflow:hidden}.prog-f{height:100%;border-radius:5px;transition:width .5s}
+
+.modal-ov{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(2px)}
+.modal{position:relative;background:#fff;border-radius:12px;width:90%;max-width:750px;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:1;border-radius:12px 12px 0 0}
+.modal-hd h3{font-size:17px;font-weight:700}.modal-bd{padding:24px}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.cs{grid-column:1/-1}
+.fw{display:flex;flex-wrap:wrap;gap:12px}
+.fb{display:flex;justify-content:space-between;align-items:center}
+.fg{display:flex;gap:12px;align-items:center}
+.tp{color:var(--primary)}.tl{color:var(--text-light)}.ts{color:var(--success)}
+.f6{font-weight:600}.f7{font-weight:700}.f8{font-weight:800}
+.ib{background:rgba(26,111,181,.05);border:1px solid rgba(26,111,181,.15);border-radius:8px;padding:12px 16px;margin-bottom:20px}
+.dv{border-top:1px solid var(--border);margin-top:16px;padding-top:16px}
+.acts{display:flex;justify-content:flex-end;gap:10px;margin-top:24px;padding-top:16px;border-top:1px solid var(--border)}
+.back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;cursor:pointer;color:var(--primary);font-size:14px;font-weight:600;padding:0;margin-bottom:16px;font-family:inherit}
+.empty{padding:40px;text-align:center;color:var(--text-light)}
+.loading{display:flex;align-items:center;justify-content:center;padding:60px}
+.spin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;color:#fff;font-size:14px;font-weight:600;z-index:2000;animation:su .3s ease}
+.toast-ok{background:var(--success)}.toast-err{background:var(--danger)}
+@keyframes su{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.icon{width:18px;height:18px;display:inline-block;vertical-align:middle}
+.cfg{background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:20px 24px;margin-bottom:24px}
+.cfg h3{color:#856404;margin-bottom:8px}.cfg p{color:#856404;font-size:14px}
+
+/* Multi-select checkbox group */
+.chk-group{display:flex;flex-wrap:wrap;gap:8px;padding:6px 0}
+.chk-group label{display:flex;align-items:center;gap:5px;padding:4px 12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:13px;transition:all .15s;user-select:none}
+.chk-group label:has(input:checked){background:var(--primary);color:#fff;border-color:var(--primary)}
+.chk-group label input{display:none}
+
+/* Gift filter panel */
+.gift-panel{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:20px 24px;margin-bottom:20px}
+.gift-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:16px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid var(--border);user-select:none}
+.gift-tag.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.gift-tag:hover{border-color:var(--primary)}
+</style>
+</head>
+<body>
+<div id="app" class="app"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// 宇豐估價案件管理系統 v2 — Supabase 版（全功能）
+// ═══════════════════════════════════════════════════════════
+
+let SUPABASE_URL = localStorage.getItem('yf_sb_url') || '';
+let SUPABASE_KEY = localStorage.getItem('yf_sb_key') || '';
+let sb = null;
+function initSB() { if (SUPABASE_URL && SUPABASE_KEY) { sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); return true; } return false; }
+initSB();
+
+// ─── Constants ─────────────────────────────────────────────
+const APPRAISERS = ['所長','副所','博宇','慈妮'];
+const CASE_TYPES = ['土地估價','建物估價','都市更新','權利變換','聯合貸款','法拍鑑價','資產重估','租金評估','其他'];
+const CASE_STATUS = ['洽談中','已簽約','進行中','已出報告','已結案','暫停'];
+const PAY_STATUS = ['未請款','已請款','已收款','逾期'];
+const GIFT_TYPES = ['中秋節','年節禮','桌曆/年曆','端午節','其他'];
+
+// ─── State ─────────────────────────────────────────────────
+let S = { page:'dashboard', sub:null, customers:[], cases:[], loading:false,
+  selCust:null, selCase:null, search:'', fStatus:'全部', fApp:'全部',
+  giftFilter: [] // 送禮篩選
+};
+
+// ─── Icons ─────────────────────────────────────────────────
+const I = {
+  home:`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  users:`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/></svg>`,
+  folder:`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>`,
+  dollar:`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>`,
+  clock:`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  search:`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+  plus:`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+  edit:`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  x:`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  back:`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`,
+  trash:`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>`,
+  gift:`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>`,
+  filter:`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>`,
+};
+
+// ─── Helpers ───────────────────────────────────────────────
+const fmt = n => n ? `$${Number(n).toLocaleString()}` : '-';
+const sBadge = s => { const m={'洽談中':'purple','已簽約':'blue','進行中':'yellow','已出報告':'green','已結案':'gray','暫停':'red'}; return `<span class="badge b-${m[s]||'gray'}">${s}</span>`; };
+const pBadge = s => { const m={'未請款':'gray','已請款':'yellow','已收款':'green','逾期':'red'}; return `<span class="badge b-${m[s]||'gray'}">${s}</span>`; };
+const appDisplay = a => { if(!a) return '-'; const arr = Array.isArray(a) ? a : [a]; return arr.filter(Boolean).join('、') || '-'; };
+const caseType = c => c.type === '其他' && c.custom_type ? c.custom_type : (c.type || '-');
+
+let toastT;
+function toast(msg,ok=true){document.querySelectorAll('.toast').forEach(e=>e.remove());const el=document.createElement('div');el.className=`toast toast-${ok?'ok':'err'}`;el.textContent=msg;document.body.appendChild(el);clearTimeout(toastT);toastT=setTimeout(()=>el.remove(),3000);}
+
+function nav(p,sub=null){S.page=p;S.sub=sub;S.selCust=null;S.selCase=null;S.search='';S.fStatus='全部';S.fApp='全部';S.giftFilter=[];render();loadData();}
+
+// ─── Supabase API ──────────────────────────────────────────
+async function loadData(){
+  if(!sb)return;S.loading=true;render();
+  try{
+    const[cR,csR]=await Promise.all([
+      sb.from('customers').select('*, contacts(*)').order('created_at',{ascending:false}),
+      sb.from('cases').select('*, payments(*)').order('created_at',{ascending:false})
+    ]);
+    if(cR.data) S.customers=cR.data.map(c=>({...c,gifts:c.gifts||[]}));
+    if(csR.data) S.cases=csR.data.map(c=>({...c,
+      appraiser:c.appraiser||[],
+      contract_amount:Number(c.contract_amount)||0,
+      paid_amount:Number(c.paid_amount)||0,
+      payments:(c.payments||[]).map(p=>({...p,amount:Number(p.amount)||0,ratio:Number(p.ratio)||0}))
+    }));
+  }catch(e){toast('載入失敗: '+e.message,false);}
+  S.loading=false;render();
+}
+
+async function genCustCode(){const{data}=await sb.from('customers').select('code').order('code',{ascending:false}).limit(1);if(data?.length>0){const n=parseInt(data[0].code.replace('YF-',''),10)+1;return'YF-'+String(n).padStart(4,'0');}return'YF-0001';}
+async function genCaseCode(){const d=new Date();const pf=`${d.getFullYear()-1911}${String(d.getMonth()+1).padStart(2,'0')}`;const{data}=await sb.from('cases').select('code').like('code',pf+'%').order('code',{ascending:false}).limit(1);if(data?.length>0){const seq=parseInt(data[0].code.substr(pf.length),10)+1;return pf+String(seq).padStart(3,'0');}return pf+'001';}
+
+async function saveCust(form){
+  S.loading=true;render();
+  try{
+    const d={name:form.name,tax_id:form.taxId,phone:form.phone,fax:form.fax,address:form.address,note:form.note,gifts:form.gifts};
+    let cid;
+    if(form.id){await sb.from('customers').update(d).eq('id',form.id);cid=form.id;await sb.from('contacts').delete().eq('customer_id',cid);
+    }else{d.code=await genCustCode();const{data,error}=await sb.from('customers').insert(d).select().single();if(error)throw error;cid=data.id;}
+    const cts=(form.contacts||[]).filter(c=>c.name);
+    if(cts.length>0)await sb.from('contacts').insert(cts.map(c=>({customer_id:cid,name:c.name,ext:c.ext,mobile:c.mobile,email:c.email})));
+    toast('客戶資料已儲存');await loadData();S.selCust=S.customers.find(c=>c.id===cid);S.page='customers';S.sub='detail';
+  }catch(e){toast('儲存失敗: '+e.message,false);}
+  S.loading=false;render();
+}
+
+async function saveCs(form){
+  S.loading=true;render();
+  try{
+    const d={customer_id:form.customerId||null,customer_name:form.customerName,type:form.type,custom_type:form.customType||'',
+      subject:form.subject,address:form.address,appraiser:form.appraiser||[],handler:form.handler,
+      status:form.status,contract_amount:Number(form.contractAmount)||0,sign_date:form.signDate||null,due_date:form.dueDate||null,note:form.note};
+    let cid;
+    if(form.id){await sb.from('cases').update(d).eq('id',form.id);cid=form.id;
+    }else{d.code=await genCaseCode();const{data,error}=await sb.from('cases').insert(d).select().single();if(error)throw error;cid=data.id;
+      if(form.payments?.length>0)await sb.from('payments').insert(form.payments.map(p=>({case_id:cid,period:p.period,ratio:p.ratio,amount:p.amount,status:p.status||'未請款',due_date:p.dueDate||null,paid_date:p.paidDate||null})));
+    }
+    toast('案件資料已儲存');await loadData();S.selCase=S.cases.find(c=>c.id===cid);S.page='cases';S.sub='detail';
+  }catch(e){toast('儲存失敗: '+e.message,false);}
+  S.loading=false;render();
+}
+
+async function updatePay(pid,cid,status){
+  const pd=status==='已收款'?new Date().toISOString().split('T')[0]:null;
+  await sb.from('payments').update({status,paid_date:pd}).eq('id',pid);
+  toast('款項狀態已更新');await loadData();S.selCase=S.cases.find(c=>c.id===cid);render();
+}
+
+// ─── Global search helper ──────────────────────────────────
+function matchSearch(term, ...fields) {
+  if (!term) return true;
+  const t = term.toLowerCase();
+  return fields.some(f => {
+    if (!f) return false;
+    if (Array.isArray(f)) return f.some(x => String(x).toLowerCase().includes(t));
+    return String(f).toLowerCase().includes(t);
+  });
+}
+
+// ─── Sidebar ───────────────────────────────────────────────
+function rSide(){
+  const d=new Date();const tw=`${d.getFullYear()-1911}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+  const a=(p,s)=>S.page===p&&(s?S.sub===s:!S.sub)?'active':'';
+  return`<div class="sidebar"><div class="sidebar-logo"><h1>宇豐估價</h1><p>案件管理系統</p></div><div class="sidebar-nav">
+    <div class="nav-item ${a('dashboard')}" onclick="nav('dashboard')">${I.home} 首頁 / 儀表板</div>
+    <div class="sidebar-section">客戶管理</div>
+    <div class="nav-sub ${a('customers','create')}" onclick="nav('customers','create')">客戶資料建立</div>
+    <div class="nav-sub ${a('customers','list')||a('customers','detail')?'active':''}" onclick="nav('customers','list')">客戶資料查詢</div>
+    <div class="nav-sub ${a('customers','gifts')?'active':''}" onclick="nav('customers','gifts')">${I.gift} 送禮篩選</div>
+    <div class="sidebar-section">案件管理</div>
+    <div class="nav-sub ${a('cases','create')}" onclick="nav('cases','create')">案件資料建立</div>
+    <div class="nav-sub ${a('cases','list')||a('cases','detail')?'active':''}" onclick="nav('cases','list')">案件資料查詢</div>
+    <div class="sidebar-section">分期管理</div>
+    <div class="nav-sub ${a('payments','track')}" onclick="nav('payments','track')">款項追蹤</div>
+    <div class="sidebar-section">報表分析</div>
+    <div class="nav-sub ${a('analytics','revenue')}" onclick="nav('analytics','revenue')">收款統計</div>
+    <div class="nav-sub ${a('analytics','perf')}" onclick="nav('analytics','perf')">業績報表</div>
+    <div class="nav-sub ${a('analytics','handler')}" onclick="nav('analytics','handler')">承辦業績</div>
+  </div><div class="sidebar-footer">v2.0 Supabase · ${tw}</div></div>`;
+}
+
+// ─── Config ────────────────────────────────────────────────
+function rCfg(){if(sb)return'';return`<div class="cfg"><h3>⚠️ 請設定 Supabase 連線</h3><p>到 Supabase → Settings → API 取得以下資訊：</p><div class="field"><label>Project URL</label><input class="inp" id="cfgU" placeholder="https://xxxxx.supabase.co" style="max-width:500px;font-family:monospace"></div><div class="field"><label>anon public Key</label><input class="inp" id="cfgK" placeholder="eyJhbGci..." style="max-width:500px;font-family:monospace"></div><button class="btn btn-p" style="margin-top:8px" onclick="saveCfg()">儲存並連接</button></div>`;}
+function saveCfg(){const u=document.getElementById('cfgU')?.value?.trim(),k=document.getElementById('cfgK')?.value?.trim();if(u&&k){SUPABASE_URL=u;SUPABASE_KEY=k;localStorage.setItem('yf_sb_url',u);localStorage.setItem('yf_sb_key',k);if(initSB()){toast('連線成功');loadData();}}else toast('請填寫完整',false);}
+
+// ─── Dashboard ─────────────────────────────────────────────
+function rDash(){
+  const cs=S.cases,cu=S.customers;
+  const active=cs.filter(c=>['進行中','已簽約','洽談中'].includes(c.status)).length;
+  const rev=cs.reduce((s,c)=>s+(c.contract_amount||0),0);
+  const col=cs.reduce((s,c)=>s+(c.paid_amount||0),0);
+  const allP=cs.flatMap(c=>c.payments||[]);
+  const pend=allP.filter(p=>p.status==='已請款').length;
+  const over=allP.filter(p=>p.status==='逾期').length;
+  const recent=cs.slice(0,5);
+
+  // 承辦統計
+  const handlers = {};
+  cs.forEach(c => { if(c.handler) { if(!handlers[c.handler]) handlers[c.handler]={name:c.handler,n:0,rev:0,active:0}; handlers[c.handler].n++; handlers[c.handler].rev+=c.contract_amount||0; if(['進行中','已簽約'].includes(c.status)) handlers[c.handler].active++; }});
+  const handlerList = Object.values(handlers).sort((a,b)=>b.rev-a.rev);
+
+  // 估價師統計（複選，一案可能有多人）
+  const appStats={};
+  APPRAISERS.forEach(a=>{appStats[a]={name:a,n:0,rev:0,active:0};});
+  cs.forEach(c=>{const apps=Array.isArray(c.appraiser)?c.appraiser:[c.appraiser];apps.filter(Boolean).forEach(a=>{if(!appStats[a])appStats[a]={name:a,n:0,rev:0,active:0};appStats[a].n++;appStats[a].rev+=c.contract_amount||0;if(['進行中','已簽約'].includes(c.status))appStats[a].active++;});});
+
+  return`<h2 class="f8" style="font-size:22px;margin-bottom:20px">儀表板</h2>${rCfg()}
+    <div class="fw" style="margin-bottom:28px">
+      <div class="stat"><div class="fg"><div style="width:36px;height:36px;border-radius:8px;background:rgba(26,111,181,.1);display:flex;align-items:center;justify-content:center;color:var(--primary)">${I.folder}</div><span class="tl" style="font-size:13px">進行中案件</span></div><div class="stat-v">${active}</div><div class="stat-s">共 ${cs.length} 件</div></div>
+      <div class="stat"><div class="fg"><div style="width:36px;height:36px;border-radius:8px;background:rgba(45,138,78,.1);display:flex;align-items:center;justify-content:center;color:var(--success)">${I.dollar}</div><span class="tl" style="font-size:13px">合約總額</span></div><div class="stat-v">${fmt(rev)}</div><div class="stat-s">已收 ${fmt(col)}</div></div>
+      <div class="stat"><div class="fg"><div style="width:36px;height:36px;border-radius:8px;background:rgba(232,168,56,.1);display:flex;align-items:center;justify-content:center;color:var(--accent)">${I.users}</div><span class="tl" style="font-size:13px">客戶數</span></div><div class="stat-v">${cu.length}</div></div>
+      <div class="stat"><div class="fg"><div style="width:36px;height:36px;border-radius:8px;background:rgba(26,111,181,.1);display:flex;align-items:center;justify-content:center;color:var(--info)">${I.clock}</div><span class="tl" style="font-size:13px">待收款</span></div><div class="stat-v">${pend}</div><div class="stat-s">${over>0?over+' 筆逾期':'無逾期'}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card"><div class="card-hd">最近案件</div>${recent.length===0?'<div class="empty">尚無案件</div>':recent.map(c=>`<div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="viewCase('${c.id}')"><div><div class="f6" style="font-size:14px">${c.subject||'-'}</div><div class="tl" style="font-size:12px;margin-top:2px">${c.code} · ${c.customer_name||'-'}</div></div>${sBadge(c.status)}</div>`).join('')}</div>
+      <div class="card"><div class="card-hd">估價師承辦統計</div>${APPRAISERS.map(a=>{const s=appStats[a]||{n:0,rev:0,active:0};return`<div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"><div><div class="f6" style="font-size:14px">${a}</div><div class="tl" style="font-size:12px">${s.active} 件進行中 / 共 ${s.n} 件</div></div><div class="f7 tp">${fmt(s.rev)}</div></div>`;}).join('')}</div>
+    </div>`;
+}
+
+// ─── Gift Filter Page ──────────────────────────────────────
+function rGifts(){
+  const t=S.search.toLowerCase();
+  const filtered = S.customers.filter(c => {
+    const mSearch = matchSearch(t, c.name, c.code, c.tax_id, (c.contacts||[]).map(x=>x.name));
+    const mGift = S.giftFilter.length === 0 || S.giftFilter.every(g => (c.gifts||[]).includes(g));
+    return mSearch && mGift;
+  });
+
+  return`<h2 class="f8" style="font-size:22px;margin-bottom:20px">${I.gift} 送禮篩選</h2>
+    <div class="gift-panel">
+      <div class="fb" style="margin-bottom:12px"><span class="f7" style="font-size:15px">篩選送禮類型</span><span class="tl" style="font-size:13px">選擇後顯示有勾選該禮品的客戶</span></div>
+      <div class="fw">${GIFT_TYPES.map(g=>`<span class="gift-tag ${S.giftFilter.includes(g)?'active':''}" onclick="toggleGift('${g}')">${g}</span>`).join('')}</div>
+      ${S.giftFilter.length>0?`<div style="margin-top:12px;font-size:13px"><span class="tp f6">已篩選：</span>${S.giftFilter.join('、')} — 共 <strong>${filtered.length}</strong> 位客戶</div>`:''}
+    </div>
+    <div class="fw" style="margin-bottom:16px"><div class="search-w" style="flex:1">${I.search}<input class="inp" placeholder="搜尋客戶名稱、編號..." value="${S.search}" oninput="S.search=this.value;render()"></div></div>
+    <div class="card"><table><thead><tr><th>編號</th><th>客戶名稱</th><th>電話</th><th>聯絡窗口</th><th>送禮項目</th></tr></thead><tbody>
+      ${filtered.map(c=>`<tr class="ck" onclick="viewCust('${c.id}')"><td class="f6 tp">${c.code}</td><td class="f6">${c.name}</td><td>${c.phone||'-'}</td><td>${(c.contacts||[]).map(x=>x.name).join('、')||'-'}</td><td>${(c.gifts||[]).map(g=>`<span class="badge b-blue" style="margin:1px 2px">${g}</span>`).join('')||'-'}</td></tr>`).join('')}
+    </tbody></table>${filtered.length===0?'<div class="empty">查無符合條件的客戶</div>':''}</div>`;
+}
+function toggleGift(g){if(S.giftFilter.includes(g))S.giftFilter=S.giftFilter.filter(x=>x!==g);else S.giftFilter.push(g);render();}
+
+// ─── Customer List ─────────────────────────────────────────
+function rCustList(){
+  const f=S.customers.filter(c=>matchSearch(S.search, c.name, c.code, c.tax_id, (c.contacts||[]).map(x=>x.name)));
+  return`<div class="fb" style="margin-bottom:20px"><h2 class="f8" style="font-size:22px">客戶資料查詢</h2><button class="btn btn-p" onclick="nav('customers','create')">${I.plus} 新增客戶</button></div>
+    <div class="fw" style="margin-bottom:16px"><div class="search-w" style="flex:1">${I.search}<input class="inp" placeholder="搜尋客戶名稱、編號、統編、聯絡人..." value="${S.search}" oninput="S.search=this.value;render()"></div></div>
+    <div class="card"><table><thead><tr><th>編號</th><th>客戶名稱</th><th>統編</th><th>電話</th><th>聯絡窗口</th><th>案件數</th></tr></thead><tbody>${f.map(c=>{const n=S.cases.filter(x=>x.customer_id===c.id).length;return`<tr class="ck" onclick="viewCust('${c.id}')"><td class="f6 tp">${c.code}</td><td class="f6">${c.name}</td><td>${c.tax_id||'-'}</td><td>${c.phone||'-'}</td><td>${(c.contacts||[]).map(x=>x.name).join('、')||'-'}</td><td><span class="badge b-${n>0?'blue':'gray'}">${n} 件</span></td></tr>`;}).join('')}</tbody></table>${f.length===0?'<div class="empty">查無資料</div>':''}</div>`;
+}
+
+// ─── Customer Detail ───────────────────────────────────────
+function rCustDet(){
+  const c=S.selCust;if(!c)return'<div class="empty">找不到客戶</div>';
+  const rc=S.cases.filter(x=>x.customer_id===c.id);
+  return`<button class="back" onclick="nav('customers','list')">${I.back} 返回列表</button>
+    <div class="card" style="padding:24px;margin-bottom:20px">
+      <div class="fb" style="margin-bottom:16px"><div><div class="tp f7" style="font-size:12px;margin-bottom:4px">${c.code}</div><h3 class="f8" style="font-size:20px">${c.name}</h3></div><button class="btn btn-o btn-s" onclick="editCust('${c.id}')">${I.edit} 編輯</button></div>
+      <div class="g3" style="font-size:14px"><div><span class="tl">統編：</span>${c.tax_id||'-'}</div><div><span class="tl">電話：</span>${c.phone||'-'}</div><div><span class="tl">傳真：</span>${c.fax||'-'}</div><div class="cs"><span class="tl">地址：</span>${c.address||'-'}</div>${c.note?`<div class="cs"><span class="tl">備註：</span>${c.note}</div>`:''}</div>
+      ${(c.contacts||[]).length>0?`<div class="dv"><h4 class="tp f7" style="font-size:14px;margin-bottom:10px">聯絡窗口</h4>${c.contacts.map(ct=>`<div class="fg" style="padding:6px 0;font-size:14px"><span class="f6">${ct.name}</span>${ct.ext?`<span class="tl">分機 ${ct.ext}</span>`:''}${ct.mobile?`<span>${ct.mobile}</span>`:''}${ct.email?`<span class="tp">${ct.email}</span>`:''}</div>`).join('')}</div>`:''}
+      ${(c.gifts||[]).length>0?`<div style="margin-top:12px" class="fg"><span class="tl" style="font-size:13px">送禮：</span>${c.gifts.map(g=>`<span class="badge b-blue">${g}</span>`).join('')}</div>`:''}
+    </div>
+    <div class="card"><div class="card-hd">相關案件（${rc.length}）<button class="btn btn-p btn-s" onclick="nav('cases','create')">${I.plus} 新增案件</button></div>
+      ${rc.length===0?'<div class="empty">尚無相關案件</div>':`<table><thead><tr><th>案件編號</th><th>案件標的</th><th>類型</th><th>估價師</th><th>金額</th><th>狀態</th></tr></thead><tbody>${rc.map(x=>`<tr class="ck" onclick="viewCase('${x.id}')"><td class="f6 tp">${x.code}</td><td>${x.subject||'-'}</td><td><span class="badge b-blue">${caseType(x)}</span></td><td>${appDisplay(x.appraiser)}</td><td class="f6">${fmt(x.contract_amount)}</td><td>${sBadge(x.status)}</td></tr>`).join('')}</tbody></table>`}</div>`;
+}
+
+// ─── Customer Form ─────────────────────────────────────────
+function rCustForm(data){
+  const f=data||{code:'（自動生成）',name:'',tax_id:'',phone:'',fax:'',address:'',note:'',contacts:[{name:'',ext:'',mobile:'',email:''}],gifts:[]};
+  return`<h2 class="f8" style="font-size:22px;margin-bottom:20px">${data?'編輯客戶':'客戶資料建立'}</h2>
+    <div class="card" style="padding:24px"><div class="ib"><span class="tp f6" style="font-size:13px">委託單位編號：${f.code}</span></div>
+    <form id="cf" onsubmit="submitCust(event)"><input type="hidden" name="id" value="${f.id||''}">
+      <div class="g2"><div class="field"><label>委託單位 <span class="req">*</span></label><input class="inp" name="name" value="${f.name}" required></div><div class="field"><label>統一編號</label><input class="inp" name="taxId" value="${f.tax_id||''}"></div><div class="field"><label>連絡電話</label><input class="inp" name="phone" value="${f.phone||''}"></div><div class="field"><label>傳真</label><input class="inp" name="fax" value="${f.fax||''}"></div></div>
+      <div class="field"><label>地址</label><input class="inp" name="address" value="${f.address||''}"></div>
+      <div class="field"><label>備註</label><input class="inp" name="note" value="${f.note||''}"></div>
+      <div class="dv"><div class="fb" style="margin-bottom:12px"><h4 class="tp f7" style="font-size:15px">聯絡窗口</h4><button type="button" class="btn btn-o btn-s" onclick="addCtRow()">${I.plus} 新增窗口</button></div>
+        <div id="ctRows">${(f.contacts||[{name:'',ext:'',mobile:'',email:''}]).map((ct,i)=>`<div class="ct-row" style="display:grid;grid-template-columns:1fr 80px 1fr 1fr auto;gap:10px;margin-bottom:10px;align-items:end"><div class="field"><label>聯絡人</label><input class="inp" name="cn_${i}" value="${ct.name||''}"></div><div class="field"><label>分機</label><input class="inp" name="ce_${i}" value="${ct.ext||''}"></div><div class="field"><label>手機</label><input class="inp" name="cm_${i}" value="${ct.mobile||''}"></div><div class="field"><label>Email</label><input class="inp" name="cem_${i}" value="${ct.email||''}"></div><button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:var(--danger);padding:6px;margin-bottom:14px">${I.trash}</button></div>`).join('')}</div></div>
+      <div class="dv"><h4 class="tp f7" style="font-size:15px;margin-bottom:10px">送禮紀錄</h4><div class="chk-group">${GIFT_TYPES.map(g=>`<label><input type="checkbox" name="gifts" value="${g}" ${(f.gifts||[]).includes(g)?'checked':''}>${g}</label>`).join('')}</div></div>
+      <div class="acts"><button type="button" class="btn btn-o" onclick="nav('customers','list')">取消</button><button type="submit" class="btn btn-p">儲存</button></div>
+    </form></div>`;
+}
+let ctN=10;
+function addCtRow(){const c=document.getElementById('ctRows');const i=ctN++;const d=document.createElement('div');d.className='ct-row';d.style.cssText='display:grid;grid-template-columns:1fr 80px 1fr 1fr auto;gap:10px;margin-bottom:10px;align-items:end';d.innerHTML=`<div class="field"><label>聯絡人</label><input class="inp" name="cn_${i}"></div><div class="field"><label>分機</label><input class="inp" name="ce_${i}"></div><div class="field"><label>手機</label><input class="inp" name="cm_${i}"></div><div class="field"><label>Email</label><input class="inp" name="cem_${i}"></div><button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:var(--danger);padding:6px;margin-bottom:14px">${I.trash}</button>`;c.appendChild(d);}
+function submitCust(e){e.preventDefault();const f=e.target;const d={id:f.id.value||undefined,name:f.name.value,taxId:f.taxId.value,phone:f.phone.value,fax:f.fax.value,address:f.address.value,note:f.note.value,gifts:Array.from(f.querySelectorAll('input[name="gifts"]:checked')).map(x=>x.value),contacts:[]};
+  f.querySelectorAll('.ct-row').forEach(r=>{const inp=r.querySelectorAll('input');if(inp[0]?.value)d.contacts.push({name:inp[0].value,ext:inp[1].value,mobile:inp[2].value,email:inp[3].value});});saveCust(d);}
+
+// ─── Case List ─────────────────────────────────────────────
+function rCaseList(){
+  const f=S.cases.filter(c=>{
+    const ms=matchSearch(S.search, c.subject, c.code, c.customer_name, c.appraiser, c.handler, caseType(c));
+    const st=S.fStatus==='全部'||c.status===S.fStatus;
+    const ap=S.fApp==='全部'||(Array.isArray(c.appraiser)?c.appraiser.includes(S.fApp):c.appraiser===S.fApp);
+    return ms&&st&&ap;
+  });
+  return`<div class="fb" style="margin-bottom:20px"><h2 class="f8" style="font-size:22px">案件資料查詢</h2><button class="btn btn-p" onclick="nav('cases','create')">${I.plus} 新增案件</button></div>
+    <div class="fw" style="margin-bottom:16px"><div class="search-w" style="flex:1 1 250px">${I.search}<input class="inp" placeholder="搜尋案件標的、編號、客戶、估價師、承辦..." value="${S.search}" oninput="S.search=this.value;render()"></div>
+      <select class="sel" style="width:auto;min-width:120px" onchange="S.fStatus=this.value;render()"><option value="全部">全部狀態</option>${CASE_STATUS.map(s=>`<option value="${s}" ${S.fStatus===s?'selected':''}>${s}</option>`).join('')}</select>
+      <select class="sel" style="width:auto;min-width:130px" onchange="S.fApp=this.value;render()"><option value="全部">全部估價師</option>${APPRAISERS.map(a=>`<option value="${a}" ${S.fApp===a?'selected':''}>${a}</option>`).join('')}</select>
+    </div>
+    <div class="card"><table><thead><tr><th>案件編號</th><th>案件標的</th><th>委託單位</th><th>類型</th><th>估價師</th><th>承辦</th><th>簽約金額</th><th>狀態</th></tr></thead><tbody>${f.map(c=>`<tr class="ck" onclick="viewCase('${c.id}')"><td class="f6 tp">${c.code}</td><td class="f6">${c.subject||'-'}</td><td>${c.customer_name||'-'}</td><td><span class="badge b-blue">${caseType(c)}</span></td><td>${appDisplay(c.appraiser)}</td><td>${c.handler||'-'}</td><td class="f6">${fmt(c.contract_amount)}</td><td>${sBadge(c.status)}</td></tr>`).join('')}</tbody></table>${f.length===0?'<div class="empty">查無資料</div>':''}</div>`;
+}
+
+// ─── Case Detail ───────────────────────────────────────────
+function rCaseDet(){
+  const c=S.selCase;if(!c)return'<div class="empty">找不到案件</div>';
+  const pm=c.payments||[];const col=pm.filter(p=>p.status==='已收款').reduce((s,p)=>s+(p.amount||0),0);
+  const prog=c.contract_amount>0?Math.round(col/c.contract_amount*100):0;
+  return`<button class="back" onclick="nav('cases','list')">${I.back} 返回列表</button>
+    <div class="card" style="padding:24px;margin-bottom:20px">
+      <div class="fb" style="margin-bottom:16px"><div><div class="fg" style="margin-bottom:6px"><span class="tp f7" style="font-size:13px">${c.code}</span>${sBadge(c.status)}<span class="badge b-blue">${caseType(c)}</span></div><h3 class="f8" style="font-size:20px">${c.subject||'-'}</h3></div><button class="btn btn-o btn-s" onclick="editCase('${c.id}')">${I.edit} 編輯</button></div>
+      <div class="g3" style="font-size:14px">
+        <div><span class="tl">委託單位：</span><span class="tp f6" style="cursor:pointer" onclick="viewCustById('${c.customer_id}')">${c.customer_name||'-'}</span></div>
+        <div><span class="tl">簽證估價師：</span>${appDisplay(c.appraiser)}</div>
+        <div><span class="tl">承辦窗口：</span>${c.handler||'-'}</div>
+        <div class="cs"><span class="tl">標的地址：</span>${c.address||'-'}</div>
+        <div><span class="tl">簽約金額：</span><strong>${fmt(c.contract_amount)}</strong></div>
+        <div><span class="tl">簽約日期：</span>${c.sign_date||'-'}</div><div><span class="tl">預定完成：</span>${c.due_date||'-'}</div>
+        ${c.note?`<div class="cs"><span class="tl">備註：</span>${c.note}</div>`:''}
+      </div>
+    </div>
+    <div class="card" style="padding:24px;margin-bottom:20px"><h4 class="f7" style="font-size:15px;margin-bottom:14px">收款進度</h4>
+      <div class="fg" style="margin-bottom:16px"><div class="prog"><div class="prog-f" style="width:${prog}%;background:${prog===100?'var(--success)':'var(--primary)'}"></div></div><span class="f7" style="white-space:nowrap;color:${prog===100?'var(--success)':'var(--primary)'}">${prog}%</span><span class="tl" style="font-size:13px;white-space:nowrap">${fmt(col)} / ${fmt(c.contract_amount)}</span></div>
+      ${pm.length>0?`<table><thead><tr><th>期數</th><th>比例</th><th>金額</th><th>期限</th><th>收款日</th><th>狀態</th><th>操作</th></tr></thead><tbody>${pm.map(p=>`<tr><td class="f6">第 ${p.period} 期</td><td>${p.ratio}%</td><td class="f6">${fmt(p.amount)}</td><td>${p.due_date||'-'}</td><td>${p.paid_date||'-'}</td><td>${pBadge(p.status)}</td><td><select class="sel" style="width:auto;padding:4px 8px;font-size:12px" onchange="updatePay('${p.id}','${c.id}',this.value)">${PAY_STATUS.map(s=>`<option value="${s}" ${p.status===s?'selected':''}>${s}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table>`:'<div class="empty">尚無分期設定</div>'}
+    </div>`;
+}
+
+// ─── Case Form ─────────────────────────────────────────────
+function rCaseForm(data){
+  const f=data||{code:'（自動生成）',customer_id:'',type:'',custom_type:'',subject:'',address:'',appraiser:[],handler:'',status:'洽談中',contract_amount:'',sign_date:'',due_date:'',note:''};
+  const apps=Array.isArray(f.appraiser)?f.appraiser:(f.appraiser?[f.appraiser]:[]);
+  const showCustom = f.type==='其他';
+  return`<h2 class="f8" style="font-size:22px;margin-bottom:20px">${data?'編輯案件':'案件資料建立'}</h2>
+    <div class="card" style="padding:24px"><div class="ib"><span class="tp f6" style="font-size:13px">案件編號：${f.code}</span></div>
+    <form id="csf" onsubmit="submitCs(event)"><input type="hidden" name="id" value="${f.id||''}">
+      <div class="g2">
+        <div class="field"><label>委託單位 <span class="req">*</span></label><select class="sel" name="customerId" required><option value="">請選擇</option>${S.customers.map(c=>`<option value="${c.id}" ${f.customer_id===c.id?'selected':''}>${c.code} - ${c.name}</option>`).join('')}</select></div>
+        <div class="field"><label>案件類型 <span class="req">*</span></label><select class="sel" name="type" required onchange="document.getElementById('customTypeField').style.display=this.value==='其他'?'block':'none'"><option value="">請選擇</option>${CASE_TYPES.map(t=>`<option value="${t}" ${f.type===t?'selected':''}>${t}</option>`).join('')}</select></div>
+      </div>
+      <div class="field" id="customTypeField" style="display:${showCustom?'block':'none'}"><label>自訂類型名稱</label><input class="inp" name="customType" value="${f.custom_type||''}" placeholder="請輸入自訂案件類型"></div>
+      <div class="g2">
+        <div class="field"><label>案件標的 <span class="req">*</span></label><input class="inp" name="subject" value="${f.subject||''}" required></div>
+        <div class="field"><label>標的地址</label><input class="inp" name="address" value="${f.address||''}"></div>
+      </div>
+      <div class="field"><label>簽證估價師（可複選）</label><div class="chk-group">${APPRAISERS.map(a=>`<label><input type="checkbox" name="appraiser" value="${a}" ${apps.includes(a)?'checked':''}>${a}</label>`).join('')}</div></div>
+      <div class="g2">
+        <div class="field"><label>承辦窗口</label><input class="inp" name="handler" value="${f.handler||''}"></div>
+        <div class="field"><label>案件狀態</label><select class="sel" name="status">${CASE_STATUS.map(s=>`<option value="${s}" ${f.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+        <div class="field"><label>簽約金額</label><input class="inp" type="number" name="contractAmount" value="${f.contract_amount||''}"></div>
+        <div class="field"><label>簽約日期</label><input class="inp" type="date" name="signDate" value="${f.sign_date||''}"></div>
+        <div class="field"><label>預定完成日</label><input class="inp" type="date" name="dueDate" value="${f.due_date||''}"></div>
+      </div>
+      <div class="field"><label>備註</label><textarea class="ta" name="note">${f.note||''}</textarea></div>
+      ${!data?`<div class="dv"><div class="fg" style="margin-bottom:12px"><h4 class="tp f7" style="font-size:15px">分期設定</h4><select class="sel" style="width:auto" id="pmCnt" onchange="genPm()"><option value="1">1 期</option><option value="2">2 期</option><option value="3">3 期</option><option value="4">4 期</option><option value="5">5 期</option></select></div><div id="pmRows"></div></div>`:''}
+      <div class="acts"><button type="button" class="btn btn-o" onclick="nav('cases','list')">取消</button><button type="submit" class="btn btn-p">儲存</button></div>
+    </form></div>`;
+}
+function genPm(){const cnt=parseInt(document.getElementById('pmCnt').value);const total=parseInt(document.querySelector('input[name="contractAmount"]')?.value)||0;const r=Math.floor(100/cnt);const c=document.getElementById('pmRows');c.innerHTML='';for(let i=0;i<cnt;i++){const rt=i===cnt-1?100-r*(cnt-1):r;const am=i===cnt-1?total-Math.floor(total*r/100)*(cnt-1):Math.floor(total*r/100);c.innerHTML+=`<div style="display:grid;grid-template-columns:60px 100px 1fr 1fr;gap:10px;margin-bottom:8px;align-items:end"><div class="field"><label>第${i+1}期</label><input class="inp" value="${rt}%" readonly></div><div class="field"><label>金額</label><input class="inp" value="${fmt(am)}" readonly></div><div class="field"><label>期限</label><input class="inp" type="date" name="pd_${i}"></div><div class="field"><label>狀態</label><select class="sel" name="ps_${i}">${PAY_STATUS.map(s=>`<option value="${s}">${s}</option>`).join('')}</select></div></div>`;}}
+function submitCs(e){e.preventDefault();const f=e.target;const cust=S.customers.find(c=>c.id===f.customerId.value);
+  const d={id:f.id.value||undefined,customerId:f.customerId.value,customerName:cust?cust.name:'',type:f.type.value,customType:f.customType?.value||'',subject:f.subject.value,address:f.address.value,appraiser:Array.from(f.querySelectorAll('input[name="appraiser"]:checked')).map(x=>x.value),handler:f.handler.value,status:f.status.value,contractAmount:Number(f.contractAmount.value)||0,signDate:f.signDate.value,dueDate:f.dueDate.value,note:f.note.value,payments:[]};
+  const cntEl=document.getElementById('pmCnt');
+  if(cntEl){const cnt=parseInt(cntEl.value);const r=Math.floor(100/cnt);for(let i=0;i<cnt;i++){const rt=i===cnt-1?100-r*(cnt-1):r;const am=i===cnt-1?d.contractAmount-Math.floor(d.contractAmount*r/100)*(cnt-1):Math.floor(d.contractAmount*r/100);d.payments.push({period:i+1,ratio:rt,amount:am,status:f[`ps_${i}`]?.value||'未請款',dueDate:f[`pd_${i}`]?.value||'',paidDate:''});}}
+  saveCs(d);}
+
+// ─── Payments ──────────────────────────────────────────────
+function rPay(){
+  const all=S.cases.flatMap(c=>(c.payments||[]).map(p=>({...p,cCode:c.code,cSubj:c.subject,cName:c.customer_name,caseId:c.id,appraiser:c.appraiser,handler:c.handler})));
+  const f=all.filter(p=>{
+    const ms=matchSearch(S.search, p.cSubj, p.cCode, p.cName, p.handler, p.appraiser);
+    const st=S.fStatus==='全部'||p.status===S.fStatus;
+    return ms&&st;
+  });
+  const sums=PAY_STATUS.map(s=>({s,n:all.filter(p=>p.status===s).length,t:all.filter(p=>p.status===s).reduce((a,p)=>a+(p.amount||0),0)}));
+  return`<h2 class="f8" style="font-size:22px;margin-bottom:20px">款項追蹤</h2>
+    <div class="fw" style="margin-bottom:16px"><div class="search-w" style="flex:1">${I.search}<input class="inp" placeholder="搜尋案件編號、標的、客戶、承辦..." value="${S.search}" oninput="S.search=this.value;render()"></div><select class="sel" style="width:auto" onchange="S.fStatus=this.value;render()"><option value="全部">全部狀態</option>${PAY_STATUS.map(s=>`<option value="${s}" ${S.fStatus===s?'selected':''}>${s}</option>`).join('')}</select></div>
+    <div class="fw" style="margin-bottom:20px">${sums.map(x=>`<div class="card" style="flex:1 1 150px;padding:12px 18px">${pBadge(x.s)}<div class="f8" style="font-size:20px;margin-top:8px">${x.n} 筆</div><div class="tl" style="font-size:13px">${fmt(x.t)}</div></div>`).join('')}</div>
+    <div class="card"><table><thead><tr><th>案件編號</th><th>案件標的</th><th>客戶</th><th>期數</th><th>金額</th><th>期限</th><th>狀態</th></tr></thead><tbody>${f.map(p=>`<tr class="ck" onclick="viewCase('${p.caseId}')"><td class="f6 tp">${p.cCode}</td><td>${p.cSubj||'-'}</td><td>${p.cName||'-'}</td><td>第 ${p.period} 期</td><td class="f6">${fmt(p.amount)}</td><td>${p.due_date||'-'}</td><td>${pBadge(p.status)}</td></tr>`).join('')}</tbody></table>${f.length===0?'<div class="empty">查無款項資料</div>':''}</div>`;
+}
+
+// ─── Analytics ─────────────────────────────────────────────
+function rAnalytics(type){
+  if(type==='revenue'){
+    const byT=CASE_TYPES.map(t=>{const c=S.cases.filter(x=>x.type===t);return{t:t==='其他'?'其他（自訂）':t,n:c.length,v:c.reduce((s,x)=>s+(x.contract_amount||0),0)};}).filter(x=>x.n>0);
+    const byS=CASE_STATUS.map(s=>{const c=S.cases.filter(x=>x.status===s);return{s,n:c.length,v:c.reduce((a,x)=>a+(x.contract_amount||0),0)};}).filter(x=>x.n>0);
+    const byC=S.customers.map(cu=>{const c=S.cases.filter(x=>x.customer_id===cu.id);return{name:cu.name,n:c.length,v:c.reduce((s,x)=>s+(x.contract_amount||0),0)};}).sort((a,b)=>b.v-a.v);
+    return`<h2 class="f8" style="font-size:22px;margin-bottom:20px">收款統計</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="card" style="padding:24px"><h4 class="f7" style="font-size:15px;margin-bottom:16px">依案件類型</h4>${byT.map(x=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><div><span class="badge b-blue">${x.t}</span> <span class="tl" style="margin-left:8px;font-size:13px">${x.n} 件</span></div><span class="f7">${fmt(x.v)}</span></div>`).join('')}</div>
+        <div class="card" style="padding:24px"><h4 class="f7" style="font-size:15px;margin-bottom:16px">依案件狀態</h4>${byS.map(x=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><div>${sBadge(x.s)} <span class="tl" style="margin-left:8px;font-size:13px">${x.n} 件</span></div><span class="f7">${fmt(x.v)}</span></div>`).join('')}</div>
+        <div class="card cs" style="padding:24px"><h4 class="f7" style="font-size:15px;margin-bottom:16px">依客戶排行</h4><table><thead><tr><th>排名</th><th>客戶</th><th>案件數</th><th>合約總額</th></tr></thead><tbody>${byC.map((x,i)=>`<tr><td class="f7" style="color:${i<3?'var(--accent)':'var(--text)'}">${i+1}</td><td class="f6">${x.name}</td><td>${x.n} 件</td><td class="f7">${fmt(x.v)}</td></tr>`).join('')}</tbody></table></div>
+      </div>`;
+  }
+
+  // 估價師業績
+  if(type==='perf'){
+    const appStats={};APPRAISERS.forEach(a=>{appStats[a]={name:a,n:0,v:0,p:0};});
+    S.cases.forEach(c=>{const apps=Array.isArray(c.appraiser)?c.appraiser:[c.appraiser];apps.filter(Boolean).forEach(a=>{if(!appStats[a])appStats[a]={name:a,n:0,v:0,p:0};appStats[a].n++;appStats[a].v+=c.contract_amount||0;appStats[a].p+=c.paid_amount||0;});});
+    const byA=Object.values(appStats);const mx=Math.max(...byA.map(a=>a.v),1);
+    return`<h2 class="f8" style="font-size:22px;margin-bottom:20px">估價師業績報表</h2>
+      <div class="card" style="padding:24px"><h4 class="f7" style="font-size:15px;margin-bottom:20px">估價師業績比較</h4>
+        ${byA.map(a=>`<div style="margin-bottom:20px"><div class="fb" style="margin-bottom:6px"><span class="f6" style="font-size:14px">${a.name}</span><span class="f7" style="font-size:14px">${fmt(a.v)} <span class="tl" style="font-weight:400">(${a.n} 件)</span></span></div><div style="display:flex;gap:2px;height:24px;border-radius:4px;overflow:hidden;background:#eef0f2"><div style="width:${(a.p/mx)*100}%;background:var(--success);transition:width .5s"></div><div style="width:${((a.v-a.p)/mx)*100}%;background:var(--primary);opacity:.3;transition:width .5s"></div></div><div class="fg" style="margin-top:4px;font-size:12px;color:var(--text-light)"><span>● 已收款 ${fmt(a.p)}</span><span style="opacity:.6">● 未收 ${fmt(a.v-a.p)}</span></div></div>`).join('')}
+      </div>`;
+  }
+
+  // 承辦業績
+  if(type==='handler'){
+    const handlers={};
+    S.cases.forEach(c=>{if(c.handler){if(!handlers[c.handler])handlers[c.handler]={name:c.handler,n:0,v:0,p:0,active:0};handlers[c.handler].n++;handlers[c.handler].v+=c.contract_amount||0;handlers[c.handler].p+=c.paid_amount||0;if(['進行中','已簽約'].includes(c.status))handlers[c.handler].active++;}});
+    const byH=Object.values(handlers).sort((a,b)=>b.v-a.v);const mx=Math.max(...byH.map(a=>a.v),1);
+    return`<h2 class="f8" style="font-size:22px;margin-bottom:20px">承辦業績報表</h2>
+      <div class="card" style="padding:24px"><h4 class="f7" style="font-size:15px;margin-bottom:20px">承辦窗口業績比較</h4>
+        ${byH.length===0?'<div class="empty">尚無承辦資料</div>':byH.map(a=>`<div style="margin-bottom:20px"><div class="fb" style="margin-bottom:6px"><span class="f6" style="font-size:14px">${a.name} <span class="tl" style="font-weight:400;font-size:12px">(${a.active} 件進行中)</span></span><span class="f7" style="font-size:14px">${fmt(a.v)} <span class="tl" style="font-weight:400">(${a.n} 件)</span></span></div><div style="display:flex;gap:2px;height:24px;border-radius:4px;overflow:hidden;background:#eef0f2"><div style="width:${(a.p/mx)*100}%;background:var(--success);transition:width .5s"></div><div style="width:${((a.v-a.p)/mx)*100}%;background:var(--primary);opacity:.3;transition:width .5s"></div></div><div class="fg" style="margin-top:4px;font-size:12px;color:var(--text-light)"><span>● 已收款 ${fmt(a.p)}</span><span style="opacity:.6">● 未收 ${fmt(a.v-a.p)}</span></div></div>`).join('')}
+      </div>
+      <div class="card" style="padding:24px;margin-top:20px"><h4 class="f7" style="font-size:15px;margin-bottom:16px">承辦明細</h4>
+        <table><thead><tr><th>承辦</th><th>案件數</th><th>進行中</th><th>合約總額</th><th>已收款</th><th>收款率</th></tr></thead><tbody>
+          ${byH.map(a=>`<tr><td class="f6">${a.name}</td><td>${a.n} 件</td><td>${a.active} 件</td><td class="f7">${fmt(a.v)}</td><td class="ts f6">${fmt(a.p)}</td><td class="f6">${a.v>0?Math.round(a.p/a.v*100):0}%</td></tr>`).join('')}
+        </tbody></table>
+      </div>`;
+  }
+  return'';
+}
+
+// ─── Nav Helpers ───────────────────────────────────────────
+function viewCust(id){S.selCust=S.customers.find(c=>c.id===id);S.page='customers';S.sub='detail';render();}
+function viewCustById(id){if(!id)return;S.selCust=S.customers.find(c=>c.id===id);if(S.selCust){S.page='customers';S.sub='detail';render();}}
+function viewCase(id){S.selCase=S.cases.find(c=>c.id===id);S.page='cases';S.sub='detail';render();}
+function editCust(id){const c=S.customers.find(x=>x.id===id);if(c){S.page='customers';S.sub='edit';S.selCust=c;render();}}
+function editCase(id){const c=S.cases.find(x=>x.id===id);if(c){S.page='cases';S.sub='edit';S.selCase=c;render();}}
+
+// ─── Main Render ───────────────────────────────────────────
+function render(){
+  let content='';
+  if(S.loading){content='<div class="loading"><div class="spin"></div></div>';}
+  else{switch(S.page){
+    case'dashboard':content=rDash();break;
+    case'customers':
+      if(S.sub==='detail'&&S.selCust)content=rCustDet();
+      else if(S.sub==='create')content=rCustForm();
+      else if(S.sub==='edit'&&S.selCust)content=rCustForm(S.selCust);
+      else if(S.sub==='gifts')content=rGifts();
+      else content=rCustList();break;
+    case'cases':
+      if(S.sub==='detail'&&S.selCase)content=rCaseDet();
+      else if(S.sub==='create')content=rCaseForm();
+      else if(S.sub==='edit'&&S.selCase)content=rCaseForm(S.selCase);
+      else content=rCaseList();break;
+    case'payments':content=rPay();break;
+    case'analytics':content=rAnalytics(S.sub);break;
+    default:content=rDash();
+  }}
+  document.getElementById('app').innerHTML=`${rSide()}<div class="main">${content}</div>`;
+  if(S.page==='cases'&&S.sub==='create'&&!S.selCase)setTimeout(genPm,50);
+}
+
+render();if(sb)loadData();
+</script>
+</body>
+</html>
